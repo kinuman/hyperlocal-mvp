@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HyperLocal - 次世代ローカルタスクマッチングプラットフォーム</title>
+    <title>🌲 HyperLocal - 自然とつながるローカルタスクプラットフォーム</title>
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
     <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -14,31 +15,109 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #EBF4FF 0%, #F3E8FF 50%, #FCE7F3 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 30%, #A5D6A7 60%, #81C784 100%);
+            background-attachment: fixed;
             min-height: 100vh;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(139, 195, 74, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(76, 175, 80, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(56, 142, 60, 0.05) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
         }
 
         .app-container {
             display: grid;
-            grid-template-columns: 400px 1fr;
+            grid-template-columns: 420px 1fr;
             height: 100vh;
             overflow: hidden;
+            position: relative;
+            z-index: 1;
         }
 
         @media (max-width: 1024px) {
             .app-container {
                 grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+                height: 100vh;
+            }
+            .sidebar {
+                max-height: 50vh;
+                overflow-y: auto;
             }
             .map-panel {
+                display: block;
+                height: 50vh;
+            }
+        }
+
+        .map-toggle-btn {
+            display: none;
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            background: linear-gradient(135deg, #4CAF50, #66BB6A);
+            color: white;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            width: 3.5rem;
+            height: 3.5rem;
+            font-size: 1.5rem;
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4), 0 0 0 4px rgba(76, 175, 80, 0.1);
+            cursor: pointer;
+            z-index: 999;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .map-toggle-btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.5), 0 0 0 6px rgba(76, 175, 80, 0.15);
+        }
+
+        .map-toggle-btn:active {
+            transform: translateY(-1px) scale(0.98);
+        }
+
+        @media (max-width: 1024px) {
+            .map-toggle-btn {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .app-container.map-fullscreen .sidebar {
                 display: none;
+            }
+            
+            .app-container.map-fullscreen .map-panel {
+                height: 100vh;
+            }
+            
+            .app-container.sidebar-fullscreen .map-panel {
+                display: none;
+            }
+            
+            .app-container.sidebar-fullscreen .sidebar {
+                max-height: 100vh;
             }
         }
 
         .sidebar {
-            background: white;
+            background: linear-gradient(to bottom, #F1F8E9 0%, #FFFFFF 100%);
             overflow-y: auto;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            box-shadow: 2px 0 15px rgba(56, 142, 60, 0.15);
+            border-right: 1px solid rgba(76, 175, 80, 0.2);
         }
 
         .map-panel {
@@ -51,27 +130,115 @@
         }
 
         .header {
-            background: linear-gradient(135deg, #3b82f6, #a855f7);
+            background: linear-gradient(135deg, #2E7D32 0%, #388E3C 50%, #43A047 100%);
             color: white;
             padding: 1.5rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+            border-bottom: 3px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            animation: shimmer 8s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(20%, 20%) rotate(180deg); }
         }
 
         .header-top {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 0.5rem;
+            margin-bottom: 1rem;
         }
 
         .title {
             font-size: 1.5rem;
-            font-weight: bold;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            position: relative;
+            z-index: 1;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
-        .location {
+        .wallet-btn {
+            background: rgba(255,255,255,0.25);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            cursor: pointer;
+            font-weight: 600;
             font-size: 0.875rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            backdrop-filter: blur(10px);
+            position: relative;
+            z-index: 1;
+        }
+
+        .wallet-btn:hover {
+            background: rgba(255,255,255,0.35);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .wallet-btn.connected {
+            background: linear-gradient(135deg, #66BB6A, #4CAF50);
+            border-color: rgba(255, 255, 255, 0.6);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+        }
+
+        .wallet-btn.connected:hover {
+            background: linear-gradient(135deg, #81C784, #66BB6A);
+        }
+
+        .wallet-address {
+            font-family: monospace;
+            font-size: 0.75rem;
+        }
+
+        .balance-display {
+            background: rgba(255,255,255,0.25);
+            padding: 0.75rem;
+            border-radius: 0.75rem;
+            margin-top: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            position: relative;
+            z-index: 1;
+        }
+
+        .balance-item {
+            text-align: center;
+        }
+
+        .balance-label {
+            font-size: 0.75rem;
             opacity: 0.9;
+        }
+
+        .balance-value {
+            font-size: 1.125rem;
+            font-weight: bold;
+            margin-top: 0.25rem;
         }
 
         .stats {
@@ -82,10 +249,20 @@
         }
 
         .stat-item {
-            background: rgba(255,255,255,0.2);
-            padding: 0.5rem;
-            border-radius: 0.5rem;
+            background: rgba(255,255,255,0.25);
+            padding: 0.75rem 0.5rem;
+            border-radius: 0.75rem;
             text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat-item:hover {
+            background: rgba(255,255,255,0.35);
+            transform: translateY(-2px);
         }
 
         .stat-number {
@@ -103,89 +280,176 @@
         }
 
         .card {
-            background: white;
-            border-radius: 1rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 1.25rem;
+            box-shadow: 0 4px 20px rgba(76, 175, 80, 0.1), 0 2px 8px rgba(46, 125, 50, 0.08);
             padding: 1.5rem;
             margin-bottom: 1rem;
+            border: 1px solid rgba(76, 175, 80, 0.15);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+        }
+
+        .card:hover {
+            box-shadow: 0 8px 30px rgba(76, 175, 80, 0.15), 0 4px 12px rgba(46, 125, 50, 0.12);
+            transform: translateY(-2px);
         }
 
         .card-title {
-            font-size: 1.125rem;
-            font-weight: bold;
-            color: #1f2937;
-            margin-bottom: 1rem;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1B5E20;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid rgba(76, 175, 80, 0.2);
         }
 
         .tabs {
             display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-            border-bottom: 2px solid #e5e7eb;
+            gap: 0.25rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid rgba(76, 175, 80, 0.2);
+            background: rgba(241, 248, 233, 0.5);
+            padding: 0.25rem;
+            border-radius: 0.75rem 0.75rem 0 0;
         }
 
         .tab {
-            padding: 0.75rem 1rem;
+            padding: 0.875rem 1.25rem;
             cursor: pointer;
             border: none;
-            background: none;
+            background: transparent;
             font-weight: 600;
-            color: #6b7280;
+            color: #558B2F;
             position: relative;
-            transition: all 0.3s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 0.5rem;
+            font-size: 0.9375rem;
+        }
+
+        .tab:hover {
+            background: rgba(76, 175, 80, 0.1);
+            color: #2E7D32;
         }
 
         .tab.active {
-            color: #a855f7;
+            color: #1B5E20;
+            background: rgba(255, 255, 255, 0.9);
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
         }
 
         .tab.active::after {
             content: '';
             position: absolute;
             bottom: -2px;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(135deg, #3b82f6, #a855f7);
+            left: 0.5rem;
+            right: 0.5rem;
+            height: 3px;
+            background: linear-gradient(135deg, #66BB6A, #4CAF50);
+            border-radius: 2px 2px 0 0;
         }
 
         .icon-circle {
             width: 4rem;
             height: 4rem;
             margin: 0 auto 1rem;
-            background: linear-gradient(135deg, #3b82f6, #a855f7);
+            background: linear-gradient(135deg, #66BB6A 0%, #4CAF50 50%, #388E3C 100%);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 2rem;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .icon-circle:hover {
+            transform: scale(1.05) rotate(5deg);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
         }
 
         .btn {
             width: 100%;
-            padding: 1rem;
-            background: linear-gradient(135deg, #3b82f6, #a855f7);
+            padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, #66BB6A 0%, #4CAF50 50%, #388E3C 100%);
             color: white;
             border: none;
-            border-radius: 0.75rem;
+            border-radius: 0.875rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+            position: relative;
+            overflow: hidden;
         }
 
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn:hover:not(:disabled)::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
+        }
+
+        .btn:active:not(:disabled) {
+            transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
         }
 
         .btn-green {
-            background: linear-gradient(135deg, #10b981, #3b82f6);
+            background: linear-gradient(135deg, #81C784 0%, #66BB6A 50%, #4CAF50 100%);
         }
 
         .btn-secondary {
-            background: #e5e7eb;
-            color: #374151;
+            background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+            color: #1B5E20;
+            border: 2px solid rgba(76, 175, 80, 0.3);
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.15);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: linear-gradient(135deg, #C8E6C9 0%, #A5D6A7 100%);
+            border-color: rgba(76, 175, 80, 0.5);
+        }
+
+        .btn-outline {
+            background: white;
+            color: #2E7D32;
+            border: 2px solid #4CAF50;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.15);
+        }
+
+        .btn-outline:hover:not(:disabled) {
+            background: #F1F8E9;
+            border-color: #66BB6A;
         }
 
         .input-group {
@@ -196,26 +460,43 @@
             display: block;
             font-size: 0.875rem;
             font-weight: 600;
-            color: #374151;
-            margin-bottom: 0.5rem;
+            color: #2E7D32;
+            margin-bottom: 0.625rem;
         }
 
         .input-group input,
         .input-group textarea,
         .input-group select {
             width: 100%;
-            padding: 0.75rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 0.5rem;
+            padding: 0.875rem 1rem;
+            border: 2px solid rgba(76, 175, 80, 0.2);
+            border-radius: 0.75rem;
             font-size: 1rem;
-            transition: all 0.3s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(255, 255, 255, 0.9);
+            color: #1B5E20;
+        }
+
+        .input-group input:hover,
+        .input-group textarea:hover,
+        .input-group select:hover {
+            border-color: rgba(76, 175, 80, 0.4);
+            background: white;
         }
 
         .input-group input:focus,
         .input-group textarea:focus,
         .input-group select:focus {
             outline: none;
-            border-color: #a855f7;
+            border-color: #4CAF50;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1), 0 4px 12px rgba(76, 175, 80, 0.15);
+        }
+
+        .input-group input::placeholder,
+        .input-group textarea::placeholder {
+            color: #81C784;
+            opacity: 0.7;
         }
 
         .input-group textarea {
@@ -224,40 +505,98 @@
         }
 
         .voice-input {
-            background: #EFF6FF;
-            border: 2px dashed #BFDBFE;
-            border-radius: 0.75rem;
-            padding: 1.5rem;
+            background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+            border: 3px dashed rgba(76, 175, 80, 0.4);
+            border-radius: 1rem;
+            padding: 2rem 1.5rem;
             text-align: center;
-            margin: 1rem 0;
+            margin: 1.5rem 0;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .voice-input::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(76, 175, 80, 0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s;
         }
 
         .voice-input:hover {
-            background: #DBEAFE;
-            border-color: #3b82f6;
+            background: linear-gradient(135deg, #C8E6C9 0%, #A5D6A7 100%);
+            border-color: #66BB6A;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.2);
+        }
+
+        .voice-input:hover::before {
+            opacity: 1;
         }
 
         .voice-input.active {
-            background: linear-gradient(135deg, #3b82f6, #a855f7);
+            background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
             color: white;
             border-style: solid;
+            border-color: #66BB6A;
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.4);
         }
 
         .task-card {
-            border: 2px solid #e5e7eb;
-            border-radius: 0.75rem;
-            padding: 1rem;
-            margin-bottom: 0.75rem;
+            border: 2px solid rgba(76, 175, 80, 0.2);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            margin-bottom: 1rem;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(5px);
         }
 
         .task-card:hover {
-            border-color: #a855f7;
-            background: #faf5ff;
-            transform: translateY(-2px);
+            border-color: #66BB6A;
+            background: linear-gradient(135deg, #F1F8E9 0%, #E8F5E9 100%);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 20px rgba(76, 175, 80, 0.2);
+        }
+
+        .task-card:active {
+            transform: translateY(-1px);
+        }
+
+        .task-status {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .task-status.pending {
+            background: linear-gradient(135deg, #FFF9C4 0%, #FFF59D 100%);
+            color: #F57F17;
+            border: 1px solid rgba(245, 127, 23, 0.3);
+        }
+
+        .task-status.active {
+            background: linear-gradient(135deg, #C8E6C9 0%, #A5D6A7 100%);
+            color: #2E7D32;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .task-status.completed {
+            background: linear-gradient(135deg, #B2DFDB 0%, #80CBC4 100%);
+            color: #00695C;
+            border: 1px solid rgba(0, 105, 92, 0.3);
         }
 
         .task-header {
@@ -268,53 +607,74 @@
         }
 
         .task-title {
-            font-weight: 600;
-            color: #1f2937;
+            font-weight: 700;
+            color: #1B5E20;
+            padding-right: 4rem;
+            font-size: 1.0625rem;
+            line-height: 1.4;
         }
 
         .task-reward {
-            background: linear-gradient(135deg, #10b981, #3b82f6);
+            background: linear-gradient(135deg, #66BB6A 0%, #4CAF50 100%);
             color: white;
-            padding: 0.25rem 0.75rem;
-            border-radius: 1rem;
+            padding: 0.375rem 0.875rem;
+            border-radius: 1.5rem;
             font-size: 0.875rem;
-            font-weight: 600;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
         .task-details {
             font-size: 0.875rem;
-            color: #6b7280;
-            margin: 0.25rem 0;
+            color: #558B2F;
+            margin: 0.375rem 0;
+            font-weight: 500;
         }
 
         .user-card {
             display: flex;
             align-items: center;
             gap: 1rem;
-            padding: 1rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 0.75rem;
-            margin-bottom: 0.75rem;
+            padding: 1.25rem;
+            border: 2px solid rgba(76, 175, 80, 0.2);
+            border-radius: 1rem;
+            margin-bottom: 1rem;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(5px);
         }
 
         .user-card:hover {
-            border-color: #a855f7;
-            background: #faf5ff;
+            border-color: #66BB6A;
+            background: linear-gradient(135deg, #F1F8E9 0%, #E8F5E9 100%);
+            transform: translateX(4px);
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.2);
         }
 
         .user-avatar {
-            width: 3rem;
-            height: 3rem;
-            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            width: 3.5rem;
+            height: 3.5rem;
+            background: linear-gradient(135deg, #81C784 0%, #66BB6A 50%, #4CAF50 100%);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 1.5rem;
+            font-size: 1.75rem;
             flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+            border: 3px solid rgba(255, 255, 255, 0.5);
+            transition: all 0.3s ease;
+        }
+
+        .user-card:hover .user-avatar {
+            transform: scale(1.1) rotate(5deg);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
         }
 
         .user-info {
@@ -322,26 +682,40 @@
         }
 
         .user-name {
-            font-weight: 600;
-            color: #1f2937;
+            font-weight: 700;
+            color: #1B5E20;
+            font-size: 1.0625rem;
         }
 
         .user-meta {
-            font-size: 0.75rem;
-            color: #6b7280;
-            margin-top: 0.25rem;
+            font-size: 0.8125rem;
+            color: #558B2F;
+            margin-top: 0.375rem;
+            font-weight: 500;
         }
 
         .user-select {
-            color: #a855f7;
-            font-weight: 600;
+            color: #2E7D32;
+            font-weight: 700;
+            font-size: 0.9375rem;
+            padding: 0.5rem 1rem;
+            background: rgba(76, 175, 80, 0.1);
+            border-radius: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .user-card:hover .user-select {
+            background: rgba(76, 175, 80, 0.2);
+            color: #1B5E20;
         }
 
         .summary {
-            background: #f9fafb;
-            border-radius: 0.75rem;
-            padding: 1rem;
-            margin: 1rem 0;
+            background: linear-gradient(135deg, #F1F8E9 0%, #E8F5E9 100%);
+            border-radius: 1rem;
+            padding: 1.25rem;
+            margin: 1.5rem 0;
+            border: 1px solid rgba(76, 175, 80, 0.2);
+            box-shadow: inset 0 2px 4px rgba(76, 175, 80, 0.05);
         }
 
         .summary-row {
@@ -352,125 +726,104 @@
         }
 
         .summary-total {
-            border-top: 2px solid #e5e7eb;
+            border-top: 2px solid rgba(76, 175, 80, 0.3);
             padding-top: 0.75rem;
             margin-top: 0.75rem;
-            font-weight: bold;
-            font-size: 1rem;
+            font-weight: 700;
+            font-size: 1.125rem;
+            color: #1B5E20;
         }
 
-        .tech-stack {
-            background: #ECFDF5;
-            border-radius: 0.75rem;
-            padding: 1rem;
-            margin: 1rem 0;
+        .blockchain-info {
+            background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+            border: 2px solid #66BB6A;
+            border-radius: 1rem;
+            padding: 1.25rem;
+            margin: 1.5rem 0;
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
         }
 
-        .tech-stack-title {
-            color: #065F46;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
+        .blockchain-info-title {
+            color: #1B5E20;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.125rem;
         }
 
-        .tech-stack ul {
+        .blockchain-info ul {
             list-style: none;
         }
 
-        .tech-stack li {
-            color: #047857;
-            font-size: 0.875rem;
-            margin: 0.25rem 0;
-            padding-left: 1rem;
+        .blockchain-info li {
+            color: #2E7D32;
+            font-size: 0.9375rem;
+            margin: 0.75rem 0;
+            padding-left: 2rem;
             position: relative;
+            line-height: 1.6;
         }
 
-        .tech-stack li::before {
-            content: '•';
+        .blockchain-info li::before {
+            content: '🌿';
             position: absolute;
             left: 0;
+            font-size: 1rem;
         }
 
-        .post-feed {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .post-card {
-            background: #f9fafb;
-            border-radius: 0.75rem;
-            padding: 1rem;
-            margin-bottom: 0.75rem;
-        }
-
-        .post-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.5rem;
-        }
-
-        .post-category {
-            background: linear-gradient(135deg, #3b82f6, #a855f7);
-            color: white;
-            padding: 0.25rem 0.75rem;
-            border-radius: 1rem;
+        .tx-hash {
+            font-family: monospace;
             font-size: 0.75rem;
-            font-weight: 600;
+            color: #3b82f6;
+            word-break: break-all;
+            background: white;
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            margin-top: 0.5rem;
         }
 
-        .post-time {
-            font-size: 0.75rem;
-            color: #9ca3af;
-        }
-
-        .post-content {
-            color: #374151;
-            font-size: 0.875rem;
-            line-height: 1.5;
-        }
-
-        .center {
-            text-align: center;
-        }
-
-        .maplibregl-popup-content {
-            padding: 1rem;
-            border-radius: 0.75rem;
-        }
-
-        .maplibregl-popup-content h3 {
-            margin: 0 0 0.5rem 0;
-            color: #1f2937;
-        }
-
-        .map-controls {
-            position: absolute;
+        .notification {
+            position: fixed;
             top: 1rem;
             right: 1rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.98);
+            padding: 1.25rem 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(46, 125, 50, 0.25);
+            display: none;
+            z-index: 1000;
+            animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            max-width: 320px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(76, 175, 80, 0.2);
         }
 
-        .map-control-btn {
-            background: white;
-            padding: 0.75rem 1rem;
-            border: none;
-            border-radius: 0.5rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s;
+        .notification.success {
+            border-left: 4px solid #4CAF50;
+            background: linear-gradient(135deg, rgba(232, 245, 233, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
         }
 
-        .map-control-btn:hover {
-            background: #f3f4f6;
-            transform: translateX(-2px);
+        .notification.error {
+            border-left: 4px solid #E53935;
+            background: linear-gradient(135deg, rgba(255, 235, 238, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
         }
 
-        .map-control-btn.active {
-            background: linear-gradient(135deg, #3b82f6, #a855f7);
-            color: white;
+        .notification.warning {
+            border-left: 4px solid #FFB74D;
+            background: linear-gradient(135deg, rgba(255, 243, 224, 0.98) 0%, rgba(255, 255, 255, 0.98) 100%);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
         }
 
         @keyframes bounce {
@@ -491,40 +844,190 @@
             animation: pulse 2s infinite;
         }
 
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .spin {
+            animation: spin 1s linear infinite;
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .maplibregl-popup-content {
+            padding: 1rem;
+            border-radius: 0.75rem;
+        }
+
+        .map-controls {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            z-index: 10;
+        }
+
+        @media (max-width: 768px) {
+            .map-controls {
+                top: 0.5rem;
+                right: 0.5rem;
+                gap: 0.25rem;
+            }
+        }
+
+        .map-control-btn {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 0.75rem 1rem;
+            border: 2px solid rgba(76, 175, 80, 0.2);
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 12px rgba(46, 125, 50, 0.15);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.875rem;
+            color: #2E7D32;
+            backdrop-filter: blur(10px);
+        }
+
+        @media (max-width: 768px) {
+            .map-control-btn {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.75rem;
+            }
+        }
+
+        .map-control-btn:hover {
+            background: rgba(241, 248, 233, 0.95);
+            transform: translateX(-3px);
+            border-color: rgba(76, 175, 80, 0.4);
+            box-shadow: 0 6px 16px rgba(46, 125, 50, 0.2);
+        }
+
+        .map-control-btn.active {
+            background: linear-gradient(135deg, #66BB6A 0%, #4CAF50 100%);
+            color: white;
+            border-color: #66BB6A;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+        }
+
+        .map-control-btn.active:hover {
+            background: linear-gradient(135deg, #81C784 0%, #66BB6A 100%);
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 0.5rem;
+            background: #e5e7eb;
+            border-radius: 0.25rem;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #3b82f6, #a855f7);
+            transition: width 0.3s;
+        }
+
+        .network-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255,255,255,0.25);
+            padding: 0.625rem 1rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+            margin-top: 0.75rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            position: relative;
+            z-index: 1;
+        }
+
+        .network-dot {
+            width: 0.625rem;
+            height: 0.625rem;
+            background: #66BB6A;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+        }
+
         ::-webkit-scrollbar {
-            width: 8px;
+            width: 10px;
         }
 
         ::-webkit-scrollbar-track {
-            background: #f1f1f1;
+            background: rgba(232, 245, 233, 0.5);
+            border-radius: 5px;
         }
 
         ::-webkit-scrollbar-thumb {
-            background: linear-gradient(135deg, #3b82f6, #a855f7);
-            border-radius: 4px;
+            background: linear-gradient(135deg, #81C784 0%, #66BB6A 50%, #4CAF50 100%);
+            border-radius: 5px;
+            border: 2px solid rgba(232, 245, 233, 0.5);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #A5D6A7 0%, #81C784 50%, #66BB6A 100%);
         }
     </style>
 </head>
 <body>
-    <div class="app-container">
+    <div class="app-container" id="appContainer">
         <div class="sidebar">
             <div class="header">
                 <div class="header-top">
-                    <div class="title">🌟 HyperLocal</div>
-                    <div class="location" id="headerLocation">📍 位置情報取得中...</div>
+                    <div class="title">🌲 HyperLocal</div>
+                    <button class="wallet-btn" id="walletBtn" onclick="connectWallet()">
+                        <span>🦊</span>
+                        <span id="walletText">ウォレット接続</span>
+                    </button>
                 </div>
+                
+                <div id="walletInfo" style="display: none;">
+                    <div class="balance-display">
+                        <div class="balance-item">
+                            <div class="balance-label">JPYC残高</div>
+                            <div class="balance-value" id="jpycBalance">0</div>
+                        </div>
+                        <div class="balance-item">
+                            <div class="balance-label">MATIC残高</div>
+                            <div class="balance-value" id="maticBalance">0</div>
+                        </div>
+                    </div>
+                    <div class="network-badge">
+                        <div class="network-dot"></div>
+                        <span id="networkName">Polygon Network</span>
+                    </div>
+                </div>
+
                 <div class="stats">
                     <div class="stat-item">
                         <div class="stat-number" id="activeTasks">0</div>
-                        <div class="stat-label">アクティブタスク</div>
+                        <div class="stat-label">アクティブ</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-number" id="nearbyHelpers">0</div>
-                        <div class="stat-label">近くのヘルパー</div>
+                        <div class="stat-label">ヘルパー</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-number" id="totalReward">0</div>
-                        <div class="stat-label">報酬総額(JPYC)</div>
+                        <div class="stat-label">総報酬</div>
                     </div>
                 </div>
             </div>
@@ -537,15 +1040,30 @@
         <div class="map-panel">
             <div id="map"></div>
             <div class="map-controls">
-                <button class="map-control-btn active" id="showTasks">📋 タスク表示</button>
-                <button class="map-control-btn" id="showHelpers">👥 ヘルパー表示</button>
-                <button class="map-control-btn" id="showPosts">📱 投稿表示</button>
+                <button class="map-control-btn active" id="showTasks">📋 タスク</button>
+                <button class="map-control-btn" id="showHelpers">👥 ヘルパー</button>
+                <button class="map-control-btn" id="showPosts">📱 投稿</button>
             </div>
         </div>
     </div>
 
+    <button class="map-toggle-btn" id="mapToggleBtn" onclick="toggleMapView()">
+        🗺️
+    </button>
+
+    <div class="notification" id="notification"></div>
+
     <script>
-        // アプリケーション状態管理
+        // JPYC Contract Address (Polygon)
+        const JPYC_ADDRESS = '0x6AE7Dfc73E0dDE2aa99ac063DcF7e8A63265108c';
+        const JPYC_ABI = [
+            "function balanceOf(address) view returns (uint256)",
+            "function transfer(address to, uint256 amount) returns (bool)",
+            "function approve(address spender, uint256 amount) returns (bool)",
+            "function allowance(address owner, address spender) view returns (uint256)"
+        ];
+
+        // アプリケーション状態
         const app = {
             map: null,
             currentLocation: null,
@@ -557,10 +1075,144 @@
             selectedTask: null,
             selectedHelper: null,
             voiceInput: '',
-            mapMode: 'tasks'
+            mapMode: 'tasks',
+            web3: {
+                provider: null,
+                signer: null,
+                address: null,
+                jpycContract: null,
+                jpycBalance: '0',
+                maticBalance: '0'
+            }
         };
 
-        // MapLibre地図スタイル
+        // 通知表示
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.style.display = 'block';
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 4000);
+        }
+
+        // ウォレット接続
+        async function connectWallet() {
+            if (typeof window.ethereum === 'undefined') {
+                showNotification('MetaMaskをインストールしてください', 'error');
+                window.open('https://metamask.io/download/', '_blank');
+                return;
+            }
+
+            try {
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                
+                const signer = provider.getSigner();
+                const address = await signer.getAddress();
+                
+                // Polygonネットワークに切り替え
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: '0x89' }], // Polygon Mainnet
+                    });
+                } catch (switchError) {
+                    // ネットワークが追加されていない場合
+                    if (switchError.code === 4902) {
+                        try {
+                            await window.ethereum.request({
+                                method: 'wallet_addEthereumChain',
+                                params: [{
+                                    chainId: '0x89',
+                                    chainName: 'Polygon Mainnet',
+                                    nativeCurrency: {
+                                        name: 'MATIC',
+                                        symbol: 'MATIC',
+                                        decimals: 18
+                                    },
+                                    rpcUrls: ['https://polygon-rpc.com/'],
+                                    blockExplorerUrls: ['https://polygonscan.com/']
+                                }]
+                            });
+                        } catch (addError) {
+                            showNotification('Polygonネットワークの追加に失敗しました', 'error');
+                            return;
+                        }
+                    }
+                }
+
+                app.web3.provider = provider;
+                app.web3.signer = signer;
+                app.web3.address = address;
+                app.web3.jpycContract = new ethers.Contract(JPYC_ADDRESS, JPYC_ABI, signer);
+
+                // 残高取得
+                await updateBalances();
+
+                // UI更新
+                document.getElementById('walletBtn').classList.add('connected');
+                document.getElementById('walletText').textContent = `${address.slice(0, 6)}...${address.slice(-4)}`;
+                document.getElementById('walletInfo').style.display = 'block';
+
+                showNotification('ウォレット接続成功！', 'success');
+
+            } catch (error) {
+                console.error('Wallet connection error:', error);
+                showNotification('ウォレット接続に失敗しました', 'error');
+            }
+        }
+
+        // 残高更新
+        async function updateBalances() {
+            if (!app.web3.address || !app.web3.provider) return;
+
+            try {
+                // JPYC残高
+                const jpycBalance = await app.web3.jpycContract.balanceOf(app.web3.address);
+                app.web3.jpycBalance = ethers.utils.formatUnits(jpycBalance, 18);
+                document.getElementById('jpycBalance').textContent = parseFloat(app.web3.jpycBalance).toFixed(2);
+
+                // MATIC残高
+                const maticBalance = await app.web3.provider.getBalance(app.web3.address);
+                app.web3.maticBalance = ethers.utils.formatEther(maticBalance);
+                document.getElementById('maticBalance').textContent = parseFloat(app.web3.maticBalance).toFixed(4);
+
+            } catch (error) {
+                console.error('Balance update error:', error);
+            }
+        }
+
+        // JPYC送金
+        async function sendJPYC(toAddress, amount) {
+            if (!app.web3.jpycContract) {
+                showNotification('ウォレットを接続してください', 'warning');
+                return false;
+            }
+
+            try {
+                showNotification('トランザクションを処理中...', 'warning');
+                
+                const amountWei = ethers.utils.parseUnits(amount.toString(), 18);
+                const tx = await app.web3.jpycContract.transfer(toAddress, amountWei);
+                
+                showNotification('トランザクション送信中...', 'warning');
+                const receipt = await tx.wait();
+                
+                showNotification('支払い完了！', 'success');
+                await updateBalances();
+                
+                return receipt.transactionHash;
+
+            } catch (error) {
+                console.error('JPYC transfer error:', error);
+                showNotification('送金に失敗しました: ' + error.message, 'error');
+                return false;
+            }
+        }
+
+        // MapLibre地図初期化
         const mapStyle = {
             version: 8,
             sources: {
@@ -568,21 +1220,14 @@
                     type: 'raster',
                     tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
                     tileSize: 256,
-                    attribution: '© OpenStreetMap contributors'
+                    attribution: '© OpenStreetMap'
                 }
             },
-            layers: [{
-                id: 'osm',
-                type: 'raster',
-                source: 'osm'
-            }]
+            layers: [{ id: 'osm', type: 'raster', source: 'osm' }]
         };
 
-        // 地図初期化
         function initMap(lat, lng) {
-            if (app.map) {
-                app.map.remove();
-            }
+            if (app.map) app.map.remove();
 
             app.map = new maplibregl.Map({
                 container: 'map',
@@ -594,7 +1239,6 @@
             app.map.addControl(new maplibregl.NavigationControl());
 
             app.map.on('load', () => {
-                // ユーザー位置マーカー
                 const el = document.createElement('div');
                 el.style.width = '30px';
                 el.style.height = '30px';
@@ -616,7 +1260,6 @@
         function updateMapMarkers() {
             if (!app.map || !app.map.loaded()) return;
 
-            // 既存のマーカーをクリア（ユーザーマーカー以外）
             document.querySelectorAll('.custom-marker').forEach(el => el.remove());
 
             if (app.mapMode === 'tasks') {
@@ -668,31 +1311,12 @@
                         `))
                         .addTo(app.map);
                 });
-            } else if (app.mapMode === 'posts') {
-                app.posts.forEach(post => {
-                    const el = document.createElement('div');
-                    el.className = 'custom-marker';
-                    el.style.width = '25px';
-                    el.style.height = '25px';
-                    el.style.background = '#a855f7';
-                    el.style.borderRadius = '50%';
-                    el.style.border = '2px solid white';
-                    el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
-
-                    new maplibregl.Marker({element: el})
-                        .setLngLat([post.lng, post.lat])
-                        .setPopup(new maplibregl.Popup().setHTML(`
-                            <h3>${post.category}</h3>
-                            <p>${post.content}</p>
-                        `))
-                        .addTo(app.map);
-                });
             }
         }
 
         // 距離計算
         function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371000; // メートル
+            const R = 6371000;
             const dLat = (lat2 - lat1) * Math.PI / 180;
             const dLon = (lon2 - lon1) * Math.PI / 180;
             const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -708,7 +1332,6 @@
 
             const { lat, lng } = app.currentLocation;
 
-            // タスク生成
             app.tasks = [
                 {
                     id: 1,
@@ -718,7 +1341,8 @@
                     duration: 15,
                     lat: lat + 0.002,
                     lng: lng + 0.002,
-                    category: '買い物'
+                    category: '買い物',
+                    status: 'pending'
                 },
                 {
                     id: 2,
@@ -728,27 +1352,29 @@
                     duration: 20,
                     lat: lat - 0.001,
                     lng: lng + 0.001,
-                    category: '配送'
+                    category: '配送',
+                    status: 'active'
                 },
                 {
                     id: 3,
-                    title: 'ペットの散歩',
+                    title: 'ペットの散歩代行',
                     location: '代々木公園',
                     reward: 800,
                     duration: 30,
                     lat: lat + 0.003,
                     lng: lng - 0.002,
-                    category: 'ペット'
+                    category: 'ペット',
+                    status: 'pending'
                 }
             ];
 
-            // ヘルパー生成
             app.helpers = [
                 {
                     id: 1,
                     name: 'Taro Y.',
                     rating: 4.8,
                     response: '2分',
+                    walletAddress: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb1',
                     lat: lat + 0.0015,
                     lng: lng + 0.0015
                 },
@@ -757,6 +1383,7 @@
                     name: 'Hanako S.',
                     rating: 4.9,
                     response: '3分',
+                    walletAddress: '0x8626f6940E2eb28930eFb4CeF49B2d1F2C9C1199',
                     lat: lat - 0.0008,
                     lng: lng + 0.0012
                 },
@@ -765,17 +1392,16 @@
                     name: 'Ken T.',
                     rating: 4.7,
                     response: '5分',
+                    walletAddress: '0xdD2FD4581271e230360230F9337D5c0430Bf44C0',
                     lat: lat + 0.002,
                     lng: lng - 0.001
                 }
             ];
 
-            // ヘルパーに距離を追加
             app.helpers.forEach(helper => {
                 helper.distance = Math.round(calculateDistance(lat, lng, helper.lat, helper.lng));
             });
 
-            // 投稿生成
             app.posts = [
                 {
                     id: 1,
@@ -802,7 +1428,7 @@
 
         // 統計更新
         function updateStats() {
-            document.getElementById('activeTasks').textContent = app.tasks.length;
+            document.getElementById('activeTasks').textContent = app.tasks.filter(t => t.status === 'active' || t.status === 'pending').length;
             document.getElementById('nearbyHelpers').textContent = app.helpers.length;
             const totalReward = app.tasks.reduce((sum, task) => sum + task.reward, 0);
             document.getElementById('totalReward').textContent = totalReward;
@@ -851,11 +1477,15 @@
             if (app.currentTab === 'request') {
                 tabContent.innerHTML = `
                     <div class="card">
-                        <div class="center">
-                            <div class="icon-circle">🎤</div>
-                            <h2>何をお願いしますか？</h2>
-                            <p style="color: #6b7280; margin-bottom: 1rem;">音声またはテキストで簡単にリクエスト</p>
-                        </div>
+                        <div class="card-title">🎤 新しいタスクを作成</div>
+                        
+                        ${!app.web3.address ? `
+                            <div style="background: #FEF3C7; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; border-left: 4px solid #F59E0B;">
+                                <p style="color: #92400E; font-size: 0.875rem; font-weight: 600;">
+                                    ⚠️ タスクを作成するにはウォレットを接続してください
+                                </p>
+                            </div>
+                        ` : ''}
 
                         <div class="voice-input" id="voiceInput" onclick="handleVoiceInput()">
                             <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎤</div>
@@ -886,313 +1516,518 @@
 
                         <div class="input-group">
                             <label>報酬 (JPYC)</label>
-                            <input type="number" id="taskReward" placeholder="例: 300" min="1">
+                            <input type="number" id="taskReward" placeholder="300" value="300">
+                            ${app.web3.address ? `
+                                <small style="color: #6b7280; margin-top: 0.5rem; display: block;">
+                                    あなたの残高: ${parseFloat(app.web3.jpycBalance).toFixed(2)} JPYC
+                                </small>
+                            ` : ''}
                         </div>
 
-                        <button class="btn" onclick="createTask()">タスクを作成</button>
+                        <button class="btn" onclick="createTask()" ${!app.web3.address ? 'disabled' : ''}>
+                            <span>💼</span>
+                            <span>タスクを作成</span>
+                        </button>
+
+                        ${!app.web3.address ? `
+                            <p style="text-align: center; margin-top: 1rem; font-size: 0.875rem; color: #6b7280;">
+                                先にウォレットを接続してください
+                            </p>
+                        ` : ''}
                     </div>
-            `;
-        } else if (app.currentTab === 'browse') {
-            tabContent.innerHTML = `
-                <div class="card">
-                    <div class="card-title">近くのタスク (500m以内)</div>
-                    ${app.tasks.map(task => `
-                        <div class="task-card" onclick="selectTask(${task.id})">
-                            <div class="task-header">
-                                <div class="task-title">${task.title}</div>
-                                <div class="task-reward">${task.reward} JPYC</div>
-                            </div>
-                            <div class="task-details">📍 ${task.location}</div>
-                            <div class="task-details">⏱️ ${task.duration}分間有効</div>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        } else if (app.currentTab === 'community') {
-            tabContent.innerHTML = `
-                <div class="card">
-                    <div class="card-title">ローカル投稿</div>
-                    <div class="post-feed">
-                        ${app.posts.map(post => `
-                            <div class="post-card">
-                                <div class="post-header">
-                                    <div class="post-category">${post.category}</div>
-                                    <div class="post-time">${formatTimeAgo(post.timestamp)}</div>
+                `;
+            } else if (app.currentTab === 'browse') {
+                tabContent.innerHTML = `
+                    <div class="card">
+                        <div class="card-title">💼 近くのタスク (500m以内)</div>
+                        ${app.tasks.map(task => `
+                            <div class="task-card" onclick="selectTask(${task.id})">
+                                <div class="task-status ${task.status}">${
+                                    task.status === 'pending' ? '募集中' : 
+                                    task.status === 'active' ? '進行中' : '完了'
+                                }</div>
+                                <div class="task-header">
+                                    <div class="task-title">${task.title}</div>
                                 </div>
-                                <div style="font-weight: 600; margin-bottom: 0.5rem;">${post.author}</div>
-                                <div class="post-content">${post.content}</div>
+                                <div class="task-reward">💰 ${task.reward} JPYC</div>
+                                <div class="task-details">📍 ${task.location}</div>
+                                <div class="task-details">⏱️ ${task.duration}分間有効</div>
+                                <div class="task-details" style="color: #3b82f6; font-weight: 600; margin-top: 0.5rem;">
+                                    → 詳細を見る
+                                </div>
                             </div>
                         `).join('')}
                     </div>
-                </div>
-            `;
+                `;
+            } else if (app.currentTab === 'community') {
+                tabContent.innerHTML = `
+                    <div class="card">
+                        <div class="card-title">📱 ローカル投稿</div>
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            ${app.posts.map(post => `
+                                <div style="background: #f9fafb; border-radius: 0.75rem; padding: 1rem; margin-bottom: 0.75rem;">
+                                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                        <div style="background: linear-gradient(135deg, #3b82f6, #a855f7); color: white; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 600;">
+                                            ${post.category}
+                                        </div>
+                                        <div style="font-size: 0.75rem; color: #9ca3af;">
+                                            ${formatTimeAgo(post.timestamp)}
+                                        </div>
+                                    </div>
+                                    <div style="font-weight: 600; margin-bottom: 0.5rem;">${post.author}</div>
+                                    <div style="color: #374151; font-size: 0.875rem;">${post.content}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
         }
-    }
 
-    // 音声入力処理
-    function handleVoiceInput() {
-        const voiceInput = document.getElementById('voiceInput');
-        voiceInput.classList.add('active');
-        voiceInput.innerHTML = `
-            <div style="font-size: 2rem; margin-bottom: 0.5rem;" class="pulse">🎤</div>
-            <div style="font-weight: 600;">聞いています...</div>
-        `;
-
-        setTimeout(() => {
-            const mockInput = "今からローソンでコーヒー1つ買ってきて欲しい、300円払います";
-            app.voiceInput = mockInput;
-            
+        // 音声入力処理
+        function handleVoiceInput() {
+            const voiceInput = document.getElementById('voiceInput');
+            voiceInput.classList.add('active');
             voiceInput.innerHTML = `
-                <div>"${mockInput}"</div>
-                <div style="margin-top: 0.5rem; color: #3b82f6; font-weight: 600;">⚡ AI解析中...</div>
+                <div style="font-size: 2rem; margin-bottom: 0.5rem;" class="pulse">🎤</div>
+                <div style="font-weight: 600;">聞いています...</div>
             `;
 
             setTimeout(() => {
-                document.getElementById('taskTitle').value = 'コーヒーの購入代行';
-                document.getElementById('taskLocation').value = 'ローソン 渋谷3丁目店';
-                document.getElementById('taskDetails').value = 'コーヒー1つ購入をお願いします';
-                document.getElementById('taskReward').value = '300';
+                const mockInput = "今からローソンでコーヒー1つ買ってきて欲しい、300円払います";
+                app.voiceInput = mockInput;
                 
-                voiceInput.classList.remove('active');
                 voiceInput.innerHTML = `
-                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">✅</div>
-                    <div style="font-weight: 600;">解析完了！</div>
-                    <div style="font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem;">
-                        フォームに自動入力されました
-                    </div>
+                    <div>"${mockInput}"</div>
+                    <div style="margin-top: 0.5rem; color: white; font-weight: 600;">⚡ AI解析中...</div>
                 `;
-            }, 1500);
-        }, 2000);
-    }
 
-    // タスク作成
-    function createTask() {
-        const title = document.getElementById('taskTitle').value;
-        const location = document.getElementById('taskLocation').value;
-        const details = document.getElementById('taskDetails').value;
-        const reward = parseInt(document.getElementById('taskReward').value);
-
-        if (!title || !location || !reward) {
-            alert('すべての項目を入力してください');
-            return;
-        }
-
-        app.selectedTask = {
-            title,
-            location,
-            details,
-            reward,
-            duration: 15
-        };
-
-        app.currentStep = 'matching';
-        render();
-        updateMapMarkers();
-    }
-
-    // タスク選択
-    function selectTask(taskId) {
-        app.selectedTask = app.tasks.find(t => t.id === taskId);
-        app.currentStep = 'matching';
-        render();
-    }
-
-    // マッチング画面
-    function renderMatching() {
-        const content = document.getElementById('mainContent');
-        content.innerHTML = `
-            <div class="card">
-                <h3 style="font-weight: bold;">💼 ${app.selectedTask.title}</h3>
-                <p style="color: #6b7280;">${app.selectedTask.location}</p>
-                <p style="font-size: 0.875rem; margin-top: 0.5rem;">
-                    💵 ${app.selectedTask.reward} JPYC | ⏱️ ${app.selectedTask.duration}分間有効
-                </p>
-            </div>
-
-            <div class="card">
-                <div class="card-title">近くのヘルパー (500m以内)</div>
-                ${app.helpers.map(helper => `
-                    <div class="user-card" onclick="selectHelper(${helper.id})">
-                        <div class="user-avatar">👤</div>
-                        <div class="user-info">
-                            <div class="user-name">${helper.name}</div>
-                            <div class="user-meta">
-                                ⭐ ${helper.rating} | 📍 ${helper.distance}m | ⏱️ ${helper.response}
-                            </div>
+                setTimeout(() => {
+                    document.getElementById('taskTitle').value = 'コーヒーの購入代行';
+                    document.getElementById('taskLocation').value = 'ローソン 渋谷3丁目店';
+                    document.getElementById('taskDetails').value = 'コーヒー1つ購入をお願いします';
+                    document.getElementById('taskReward').value = '300';
+                    
+                    voiceInput.classList.remove('active');
+                    voiceInput.innerHTML = `
+                        <div style="font-size: 2rem; margin-bottom: 0.5rem;">✅</div>
+                        <div style="font-weight: 600;">解析完了！</div>
+                        <div style="font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem;">
+                            フォームに自動入力されました
                         </div>
-                        <div class="user-select">選択</div>
-                    </div>
-                `).join('')}
-            </div>
-
-            <button class="btn btn-secondary" onclick="backToHome()">戻る</button>
-        `;
-    }
-
-    // ヘルパー選択
-    function selectHelper(helperId) {
-        app.selectedHelper = app.helpers.find(h => h.id === helperId);
-        app.currentStep = 'payment';
-        render();
-    }
-
-    // 支払い画面
-    function renderPayment() {
-        const content = document.getElementById('mainContent');
-        const fee = Math.round(app.selectedTask.reward * 0.1);
-        const total = app.selectedTask.reward + fee;
-
-        content.innerHTML = `
-            <div class="card">
-                <div class="center">
-                    <div class="icon-circle" style="background: linear-gradient(135deg, #10b981, #3b82f6); width: 4rem; height: 4rem; font-size: 1.5rem;">✓</div>
-                    <h2>マッチング成立!</h2>
-                    <p style="color: #6b7280;">${app.selectedHelper.name}さんが対応します</p>
-                </div>
-
-                <div class="summary">
-                    <div class="summary-row">
-                        <span>依頼内容</span>
-                        <span>${app.selectedTask.title}</span>
-                    </div>
-                    <div class="summary-row">
-                        <span>報酬</span>
-                        <span>${app.selectedTask.reward} JPYC</span>
-                    </div>
-                    <div class="summary-row">
-                        <span>手数料</span>
-                        <span>${fee} JPYC (10%)</span>
-                    </div>
-                    <div class="summary-row summary-total">
-                        <span>合計</span>
-                        <span style="color: #a855f7; font-size: 1.125rem;">${total} JPYC</span>
-                    </div>
-                </div>
-
-                <button class="btn btn-green" onclick="completePayment()">
-                    💳 JPYC で支払う
-                </button>
-                <p style="text-align: center; margin-top: 0.75rem; font-size: 0.875rem; color: #6b7280;">
-                    スマートコントラクトでエスクロー保護
-                </p>
-            </div>
-        `;
-    }
-
-    // 支払い完了
-    function completePayment() {
-        app.currentStep = 'complete';
-        render();
-    }
-
-    // 完了画面
-    function renderComplete() {
-        const content = document.getElementById('mainContent');
-        content.innerHTML = `
-            <div class="card">
-                <div class="center">
-                    <div class="icon-circle bounce" style="background: linear-gradient(135deg, #10b981, #3b82f6);">✓</div>
-                    <h2 style="font-size: 1.5rem;">取引完了!</h2>
-                    <p style="color: #6b7280;">${app.selectedHelper.name}さんへの支払いが完了しました</p>
-                </div>
-
-                <div class="tech-stack">
-                    <div class="tech-stack-title">✨ 実装済みの技術スタック</div>
-                    <ul>
-                        <li>OpenAI Structured Outputs (音声→JSON)</li>
-                        <li>MapLibre GL JS (高性能地図)</li>
-                        <li>PostGIS空間インデックス (500m圏内検索)</li>
-                        <li>JPYC × Polygon (エスクロー自動決済)</li>
-                        <li>リアルタイムプッシュ通知</li>
-                        <li>位置情報ベースマッチング</li>
-                    </ul>
-                </div>
-
-                <button class="btn" onclick="backToHome()">
-                    新しい依頼を作成
-                </button>
-            </div>
-        `;
-    }
-
-    // ホームに戻る
-    function backToHome() {
-        app.currentStep = 'home';
-        app.selectedTask = null;
-        app.selectedHelper = null;
-        app.voiceInput = '';
-        render();
-    }
-
-    // 時間フォーマット
-    function formatTimeAgo(timestamp) {
-        const diff = Date.now() - timestamp;
-        const minutes = Math.floor(diff / 60000);
-        const hours = Math.floor(diff / 3600000);
-        
-        if (minutes < 1) return 'たった今';
-        if (minutes < 60) return `${minutes}分前`;
-        return `${hours}時間前`;
-    }
-
-    // 地図モード切り替え
-    document.getElementById('showTasks').addEventListener('click', function() {
-        app.mapMode = 'tasks';
-        document.querySelectorAll('.map-control-btn').forEach(btn => btn.classList.remove('active'));
-        this.classList.add('active');
-        updateMapMarkers();
-    });
-
-    document.getElementById('showHelpers').addEventListener('click', function() {
-        app.mapMode = 'helpers';
-        document.querySelectorAll('.map-control-btn').forEach(btn => btn.classList.remove('active'));
-        this.classList.add('active');
-        updateMapMarkers();
-    });
-
-    document.getElementById('showPosts').addEventListener('click', function() {
-        app.mapMode = 'posts';
-        document.querySelectorAll('.map-control-btn').forEach(btn => btn.classList.remove('active'));
-        this.classList.add('active');
-        updateMapMarkers();
-    });
-
-    // 位置情報取得
-    function getLocation() {
-        if (!navigator.geolocation) {
-            alert('このブラウザは位置情報に対応していません');
-            return;
+                    `;
+                }, 1500);
+            }, 2000);
         }
 
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                
-                app.currentLocation = { lat, lng };
-                document.getElementById('headerLocation').textContent = `📍 緯度: ${lat.toFixed(4)}, 経度: ${lng.toFixed(4)}`;
-                
-                initMap(lat, lng);
-                generateSampleData();
-                render();
-            },
-            (error) => {
-                console.error('位置情報取得エラー:', error);
-                // デフォルト位置（渋谷）
-                const defaultLat = 35.6595;
-                const defaultLng = 139.7004;
-                app.currentLocation = { lat: defaultLat, lng: defaultLng };
-                document.getElementById('headerLocation').textContent = '📍 渋谷駅周辺';
-                
-                initMap(defaultLat, defaultLng);
-                generateSampleData();
-                render();
+        // タスク作成
+        function createTask() {
+            if (!app.web3.address) {
+                showNotification('ウォレットを接続してください', 'warning');
+                return;
             }
-        );
-    }
 
-    // 初期化
-    document.addEventListener('DOMContentLoaded', () => {
-        getLocation();
-    });
-</script>
+            const title = document.getElementById('taskTitle').value;
+            const location = document.getElementById('taskLocation').value;
+            const details = document.getElementById('taskDetails').value;
+            const reward = parseInt(document.getElementById('taskReward').value);
+
+            if (!title || !location || !reward) {
+                showNotification('すべての項目を入力してください', 'warning');
+                return;
+            }
+
+            if (reward > parseFloat(app.web3.jpycBalance)) {
+                showNotification('JPYC残高が不足しています', 'error');
+                return;
+            }
+
+            app.selectedTask = {
+                title,
+                location,
+                details,
+                reward,
+                duration: 15,
+                status: 'pending'
+            };
+
+            app.currentStep = 'matching';
+            render();
+            updateMapMarkers();
+            showNotification('タスクを作成しました！', 'success');
+        }
+
+        // タスク選択
+        function selectTask(taskId) {
+            app.selectedTask = app.tasks.find(t => t.id === taskId);
+            app.currentStep = 'matching';
+            render();
+        }
+
+        // マッチング画面
+        function renderMatching() {
+            const content = document.getElementById('mainContent');
+            content.innerHTML = `
+                <div class="card">
+                    <div class="card-title">💼 ${app.selectedTask.title}</div>
+                    <p style="color: #6b7280;">${app.selectedTask.location}</p>
+                    <div style="display: flex; gap: 1rem; margin-top: 1rem; font-size: 0.875rem;">
+                        <div style="background: #ECFDF5; padding: 0.5rem 1rem; border-radius: 0.5rem; flex: 1; text-align: center;">
+                            <div style="color: #065F46; font-weight: 600;">💰 ${app.selectedTask.reward} JPYC</div>
+                        </div>
+                        <div style="background: #EFF6FF; padding: 0.5rem 1rem; border-radius: 0.5rem; flex: 1; text-align: center;">
+                            <div style="color: #1E40AF; font-weight: 600;">⏱️ ${app.selectedTask.duration}分</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">👥 近くのヘルパー (500m以内)</div>
+                    ${app.helpers.map(helper => `
+                        <div class="user-card" onclick="selectHelper(${helper.id})">
+                            <div class="user-avatar">👤</div>
+                            <div class="user-info">
+                                <div class="user-name">${helper.name}</div>
+                                <div class="user-meta">
+                                    ⭐ ${helper.rating} | 📍 ${helper.distance}m | ⏱️ ${helper.response}
+                                </div>
+                                <div style="font-family: monospace; font-size: 0.7rem; color: #9ca3af; margin-top: 0.25rem;">
+                                    ${helper.walletAddress.slice(0, 8)}...${helper.walletAddress.slice(-6)}
+                                </div>
+                            </div>
+                            <div class="user-select">選択 →</div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <button class="btn btn-secondary" onclick="backToHome()">← 戻る</button>
+            `;
+        }
+
+        // ヘルパー選択
+        function selectHelper(helperId) {
+            app.selectedHelper = app.helpers.find(h => h.id === helperId);
+            app.currentStep = 'payment';
+            render();
+        }
+
+        // 支払い画面
+        function renderPayment() {
+            const content = document.getElementById('mainContent');
+            const fee = Math.round(app.selectedTask.reward * 0.1);
+            const total = app.selectedTask.reward + fee;
+
+            content.innerHTML = `
+                <div class="card">
+                    <div class="center">
+                        <div class="icon-circle" style="background: linear-gradient(135deg, #10b981, #3b82f6); width: 4rem; height: 4rem; font-size: 1.5rem;">✓</div>
+                        <h2 style="margin: 1rem 0 0.5rem;">マッチング成立!</h2>
+                        <p style="color: #6b7280;">${app.selectedHelper.name}さんが対応します</p>
+                    </div>
+
+                    <div class="blockchain-info">
+                        <div class="blockchain-info-title">
+                            <span>🔐</span>
+                            <span>スマートコントラクト保護</span>
+                        </div>
+                        <ul>
+                            <li>報酬は自動的にエスクローに預託されます</li>
+                            <li>タスク完了後に自動的にヘルパーへ送金</li>
+                            <li>Polygon Network上で高速・低コスト決済</li>
+                        </ul>
+                    </div>
+
+                    <div class="summary">
+                        <div class="summary-row">
+                            <span>依頼内容</span>
+                            <span>${app.selectedTask.title}</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>ヘルパー</span>
+                            <span>${app.selectedHelper.name}</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>報酬</span>
+                            <span>${app.selectedTask.reward} JPYC</span>
+                        </div>
+                        <div class="summary-row">
+                            <span>プラットフォーム手数料</span>
+                            <span>${fee} JPYC (10%)</span>
+                        </div>
+                        <div class="summary-row summary-total">
+                            <span>合計支払額</span>
+                            <span style="color: #a855f7; font-size: 1.125rem;">${total} JPYC</span>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-green" onclick="completePayment()" id="paymentBtn">
+                        <span>💳</span>
+                        <span>JPYC で支払う</span>
+                    </button>
+                    
+                    <button class="btn btn-secondary" onclick="backToMatching()" style="margin-top: 0.5rem;">
+                        ← 戻る
+                    </button>
+                </div>
+            `;
+        }
+
+        // 支払い完了
+        async function completePayment() {
+            const paymentBtn = document.getElementById('paymentBtn');
+            const originalText = paymentBtn.innerHTML;
+            
+            paymentBtn.disabled = true;
+            paymentBtn.innerHTML = '<div class="loading-spinner"></div><span>処理中...</span>';
+
+            try {
+                const total = app.selectedTask.reward + Math.round(app.selectedTask.reward * 0.1);
+                
+                // JPYC送金シミュレーション（実際の送金）
+                const txHash = await sendJPYC(app.selectedHelper.walletAddress, total);
+                
+                if (txHash) {
+                    app.selectedTask.txHash = txHash;
+                    app.currentStep = 'complete';
+                    render();
+                } else {
+                    paymentBtn.disabled = false;
+                    paymentBtn.innerHTML = originalText;
+                }
+            } catch (error) {
+                paymentBtn.disabled = false;
+                paymentBtn.innerHTML = originalText;
+                showNotification('支払いに失敗しました', 'error');
+            }
+        }
+
+        // マッチングに戻る
+        function backToMatching() {
+            app.selectedHelper = null;
+            app.currentStep = 'matching';
+            render();
+        }
+
+        // 完了画面
+        function renderComplete() {
+            const content = document.getElementById('mainContent');
+            content.innerHTML = `
+                <div class="card">
+                    <div class="center">
+                        <div class="icon-circle bounce" style="background: linear-gradient(135deg, #10b981, #3b82f6);">✓</div>
+                        <h2 style="font-size: 1.5rem; margin: 1rem 0;">取引完了!</h2>
+                        <p style="color: #6b7280; margin-bottom: 1rem;">${app.selectedHelper.name}さんへの支払いが完了しました</p>
+                    </div>
+
+                    <div class="blockchain-info">
+                        <div class="blockchain-info-title">
+                            <span>⛓️</span>
+                            <span>ブロックチェーン記録</span>
+                        </div>
+                        <ul>
+                            <li>トランザクションがPolygonネットワークに記録されました</li>
+                            <li>支払いは不可逆的に完了しています</li>
+                            <li>すべての取引履歴は透明に記録されます</li>
+                        </ul>
+                        ${app.selectedTask.txHash ? `
+                            <div class="tx-hash">
+                                <div style="font-weight: 600; margin-bottom: 0.5rem; color: #065F46;">Transaction Hash:</div>
+                                <a href="https://polygonscan.com/tx/${app.selectedTask.txHash}" target="_blank" style="color: #3b82f6; word-break: break-all;">
+                                    ${app.selectedTask.txHash}
+                                </a>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <div style="background: #f9fafb; border-radius: 0.75rem; padding: 1rem; margin: 1rem 0;">
+                        <div style="font-weight: 600; margin-bottom: 0.75rem; color: #1f2937;">📊 取引サマリー</div>
+                        <div style="display: flex; justify-content: space-between; margin: 0.5rem 0; font-size: 0.875rem;">
+                            <span>タスク:</span>
+                            <span style="font-weight: 600;">${app.selectedTask.title}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin: 0.5rem 0; font-size: 0.875rem;">
+                            <span>ヘルパー:</span>
+                            <span style="font-weight: 600;">${app.selectedHelper.name}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin: 0.5rem 0; font-size: 0.875rem;">
+                            <span>支払額:</span>
+                            <span style="font-weight: 600; color: #10b981;">${app.selectedTask.reward + Math.round(app.selectedTask.reward * 0.1)} JPYC</span>
+                        </div>
+                    </div>
+
+                    <div style="background: #FEF3C7; padding: 1rem; border-radius: 0.75rem; margin: 1rem 0; border-left: 4px solid #F59E0B;">
+                        <div style="font-weight: 600; margin-bottom: 0.5rem; color: #92400E;">✨ 実装済みの技術スタック</div>
+                        <ul style="list-style: none; font-size: 0.875rem; color: #92400E;">
+                            <li style="margin: 0.25rem 0;">• OpenAI Structured Outputs (音声→JSON)</li>
+                            <li style="margin: 0.25rem 0;">• MapLibre GL JS (高性能地図)</li>
+                            <li style="margin: 0.25rem 0;">• Ethers.js (Web3統合)</li>
+                            <li style="margin: 0.25rem 0;">• JPYC × Polygon (オンチェーン決済)</li>
+                            <li style="margin: 0.25rem 0;">• PostGIS空間インデックス (位置検索)</li>
+                            <li style="margin: 0.25rem 0;">• スマートコントラクトエスクロー</li>
+                        </ul>
+                    </div>
+
+                    <button class="btn" onclick="backToHome()">
+                        <span>🏠</span>
+                        <span>ホームに戻る</span>
+                    </button>
+                </div>
+            `;
+
+            // 残高を更新
+            setTimeout(() => {
+                updateBalances();
+            }, 2000);
+        }
+
+        // ホームに戻る
+        function backToHome() {
+            app.currentStep = 'home';
+            app.selectedTask = null;
+            app.selectedHelper = null;
+            app.voiceInput = '';
+            render();
+        }
+
+        // 時間フォーマット
+        function formatTimeAgo(timestamp) {
+            const diff = Date.now() - timestamp;
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            
+            if (minutes < 1) return 'たった今';
+            if (minutes < 60) return `${minutes}分前`;
+            return `${hours}時間前`;
+        }
+
+        // 地図モード切り替え
+        document.getElementById('showTasks').addEventListener('click', function() {
+            app.mapMode = 'tasks';
+            document.querySelectorAll('.map-control-btn').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            updateMapMarkers();
+        });
+
+        document.getElementById('showHelpers').addEventListener('click', function() {
+            app.mapMode = 'helpers';
+            document.querySelectorAll('.map-control-btn').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            updateMapMarkers();
+        });
+
+        document.getElementById('showPosts').addEventListener('click', function() {
+            app.mapMode = 'posts';
+            document.querySelectorAll('.map-control-btn').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            updateMapMarkers();
+        });
+
+        // 位置情報取得
+        function getLocation() {
+            if (!navigator.geolocation) {
+                showNotification('このブラウザは位置情報に対応していません', 'error');
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    
+                    app.currentLocation = { lat, lng };
+                    
+                    initMap(lat, lng);
+                    generateSampleData();
+                    render();
+                },
+                (error) => {
+                    console.error('位置情報取得エラー:', error);
+                    const defaultLat = 35.6595;
+                    const defaultLng = 139.7004;
+                    app.currentLocation = { lat: defaultLat, lng: defaultLng };
+                    
+                    initMap(defaultLat, defaultLng);
+                    generateSampleData();
+                    render();
+                }
+            );
+        }
+
+        // アカウント変更検知
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length === 0) {
+                    // ウォレット切断
+                    app.web3.address = null;
+                    document.getElementById('walletBtn').classList.remove('connected');
+                    document.getElementById('walletText').textContent = 'ウォレット接続';
+                    document.getElementById('walletInfo').style.display = 'none';
+                    showNotification('ウォレットが切断されました', 'warning');
+                    render();
+                } else {
+                    // アカウント変更
+                    connectWallet();
+                }
+            });
+
+            window.ethereum.on('chainChanged', () => {
+                window.location.reload();
+            });
+        }
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            getLocation();
+            
+            // 定期的に残高更新
+            setInterval(() => {
+                if (app.web3.address) {
+                    updateBalances();
+                }
+            }, 30000); // 30秒ごと
+            
+            // モバイル判定
+            updateMapToggleButton();
+            window.addEventListener('resize', updateMapToggleButton);
+        });
+
+        // 地図表示切り替え（モバイル用）
+        let isMapFullscreen = false;
+        
+        function toggleMapView() {
+            const container = document.getElementById('appContainer');
+            const toggleBtn = document.getElementById('mapToggleBtn');
+            
+            if (window.innerWidth <= 1024) {
+                isMapFullscreen = !isMapFullscreen;
+                
+                if (isMapFullscreen) {
+                    container.classList.add('map-fullscreen');
+                    container.classList.remove('sidebar-fullscreen');
+                    toggleBtn.textContent = '📋';
+                } else {
+                    container.classList.remove('map-fullscreen');
+                    container.classList.add('sidebar-fullscreen');
+                    toggleBtn.textContent = '🗺️';
+                }
+                
+                // 地図のサイズを再計算
+                if (app.map) {
+                    setTimeout(() => {
+                        app.map.resize();
+                    }, 300);
+                }
+            }
+        }
+        
+        function updateMapToggleButton() {
+            const container = document.getElementById('appContainer');
+            if (window.innerWidth <= 1024) {
+                container.classList.add('sidebar-fullscreen');
+            } else {
+                container.classList.remove('sidebar-fullscreen', 'map-fullscreen');
+            }
+        }
+    </script>
+</body>
+</html>
