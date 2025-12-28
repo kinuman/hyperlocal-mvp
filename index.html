@@ -3,176 +3,1196 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HyperLocal</title>
+    <title>HyperLocal - 次世代ローカルタスクマッチングプラットフォーム</title>
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: linear-gradient(135deg, #EBF4FF 0%, #F3E8FF 50%, #FCE7F3 100%); min-height: 100vh; padding: 1rem; }
-        .container { max-width: 28rem; margin: 0 auto; }
-        .card { background: white; border-radius: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.1); padding: 1.5rem; margin-bottom: 1rem; }
-        .header { display: flex; justify-content: space-between; align-items: center; }
-        .title { font-size: 1.5rem; font-weight: bold; background: linear-gradient(135deg, #2563eb, #9333ea); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .location { font-size: 0.875rem; color: #6b7280; }
-        .center { text-align: center; }
-        .icon-circle { width: 5rem; height: 5rem; margin: 0 auto; background: linear-gradient(135deg, #3b82f6, #a855f7); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; }
-        h2 { font-size: 1.25rem; font-weight: bold; color: #1f2937; margin: 1rem 0; }
-        p { font-size: 0.875rem; color: #6b7280; }
-        .btn { width: 100%; padding: 1rem; background: linear-gradient(135deg, #3b82f6, #a855f7); color: white; border: none; border-radius: 0.75rem; font-weight: 600; cursor: pointer; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4); transition: all 0.3s; }
-        .btn:hover { box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6); transform: translateY(-2px); }
-        .btn-green { background: linear-gradient(135deg, #10b981, #3b82f6); }
-        .btn-gray { background: #e5e7eb; color: #374151; }
-        .input-box { background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 0.5rem; padding: 1rem; margin: 1rem 0; }
-        .user-card { border: 1px solid #e5e7eb; border-radius: 0.75rem; padding: 1rem; margin: 0.75rem 0; cursor: pointer; transition: all 0.3s; display: flex; justify-content: space-between; align-items: center; }
-        .user-card:hover { border-color: #a855f7; background: #faf5ff; }
-        .user-avatar { width: 2.5rem; height: 2.5rem; background: linear-gradient(135deg, #60a5fa, #a78bfa); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.25rem; }
-        .user-info { display: flex; align-items: center; gap: 0.75rem; }
-        .user-details { font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; }
-        .select-btn { color: #a855f7; font-weight: 600; }
-        .summary { background: #f9fafb; border-radius: 0.75rem; padding: 1rem; margin: 1.5rem 0; }
-        .summary-row { display: flex; justify-content: space-between; margin: 0.5rem 0; font-size: 0.875rem; }
-        .summary-total { border-top: 1px solid #e5e7eb; padding-top: 0.75rem; margin-top: 0.75rem; font-weight: bold; }
-        .tech-stack { background: #ECFDF5; border-radius: 0.75rem; padding: 1rem; margin: 1.5rem 0; }
-        .tech-stack p { color: #065F46; font-weight: 600; }
-        .tech-stack ul { margin-top: 0.5rem; }
-        .tech-stack li { color: #047857; font-size: 0.75rem; margin: 0.25rem 0; list-style: none; }
-        .footer { text-align: center; font-size: 0.75rem; color: #6b7280; margin-top: 1.5rem; }
-        .space-y { margin: 1rem 0; }
-        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-        .bounce { animation: bounce 1s infinite; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #EBF4FF 0%, #F3E8FF 50%, #FCE7F3 100%);
+            min-height: 100vh;
+        }
+
+        .app-container {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        @media (max-width: 1024px) {
+            .app-container {
+                grid-template-columns: 1fr;
+            }
+            .map-panel {
+                display: none;
+            }
+        }
+
+        .sidebar {
+            background: white;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .map-panel {
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #3b82f6, #a855f7);
+            color: white;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .title {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .location {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .stat-item {
+            background: rgba(255,255,255,0.2);
+            padding: 0.5rem;
+            border-radius: 0.5rem;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 1rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: bold;
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .tab {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-weight: 600;
+            color: #6b7280;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            color: #a855f7;
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(135deg, #3b82f6, #a855f7);
+        }
+
+        .icon-circle {
+            width: 4rem;
+            height: 4rem;
+            margin: 0 auto 1rem;
+            background: linear-gradient(135deg, #3b82f6, #a855f7);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, #3b82f6, #a855f7);
+            color: white;
+            border: none;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 1rem;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-green {
+            background: linear-gradient(135deg, #10b981, #3b82f6);
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .input-group {
+            margin-bottom: 1rem;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        .input-group input,
+        .input-group textarea,
+        .input-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .input-group input:focus,
+        .input-group textarea:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #a855f7;
+        }
+
+        .input-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .voice-input {
+            background: #EFF6FF;
+            border: 2px dashed #BFDBFE;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            text-align: center;
+            margin: 1rem 0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .voice-input:hover {
+            background: #DBEAFE;
+            border-color: #3b82f6;
+        }
+
+        .voice-input.active {
+            background: linear-gradient(135deg, #3b82f6, #a855f7);
+            color: white;
+            border-style: solid;
+        }
+
+        .task-card {
+            border: 2px solid #e5e7eb;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .task-card:hover {
+            border-color: #a855f7;
+            background: #faf5ff;
+            transform: translateY(-2px);
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 0.5rem;
+        }
+
+        .task-title {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .task-reward {
+            background: linear-gradient(135deg, #10b981, #3b82f6);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .task-details {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin: 0.25rem 0;
+        }
+
+        .user-card {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.75rem;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .user-card:hover {
+            border-color: #a855f7;
+            background: #faf5ff;
+        }
+
+        .user-avatar {
+            width: 3rem;
+            height: 3rem;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .user-info {
+            flex: 1;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .user-meta {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+
+        .user-select {
+            color: #a855f7;
+            font-weight: 600;
+        }
+
+        .summary {
+            background: #f9fafb;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 0.5rem 0;
+            font-size: 0.875rem;
+        }
+
+        .summary-total {
+            border-top: 2px solid #e5e7eb;
+            padding-top: 0.75rem;
+            margin-top: 0.75rem;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .tech-stack {
+            background: #ECFDF5;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .tech-stack-title {
+            color: #065F46;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .tech-stack ul {
+            list-style: none;
+        }
+
+        .tech-stack li {
+            color: #047857;
+            font-size: 0.875rem;
+            margin: 0.25rem 0;
+            padding-left: 1rem;
+            position: relative;
+        }
+
+        .tech-stack li::before {
+            content: '•';
+            position: absolute;
+            left: 0;
+        }
+
+        .post-feed {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .post-card {
+            background: #f9fafb;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .post-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .post-category {
+            background: linear-gradient(135deg, #3b82f6, #a855f7);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .post-time {
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
+
+        .post-content {
+            color: #374151;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .maplibregl-popup-content {
+            padding: 1rem;
+            border-radius: 0.75rem;
+        }
+
+        .maplibregl-popup-content h3 {
+            margin: 0 0 0.5rem 0;
+            color: #1f2937;
+        }
+
+        .map-controls {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .map-control-btn {
+            background: white;
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .map-control-btn:hover {
+            background: #f3f4f6;
+            transform: translateX(-2px);
+        }
+
+        .map-control-btn.active {
+            background: linear-gradient(135deg, #3b82f6, #a855f7);
+            color: white;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .bounce {
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #3b82f6, #a855f7);
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
-    <div id="root"></div>
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script type="text/babel">
-        const { useState } = React;
-
-        const App = () => {
-            const [step, setStep] = useState('input');
-            const [request, setRequest] = useState(null);
-            const [nearbyUsers, setNearbyUsers] = useState([]);
-            const [selectedHelper, setSelectedHelper] = useState(null);
-            const [voiceInput, setVoiceInput] = useState('');
-
-            const mockNearbyUsers = [
-                { id: 1, name: 'Taro Y.', distance: 120, rating: 4.8, response: '2分' },
-                { id: 2, name: 'Hanako S.', distance: 250, rating: 4.9, response: '3分' },
-                { id: 3, name: 'Ken T.', distance: 380, rating: 4.7, response: '5分' }
-            ];
-
-            const handleVoiceInput = () => {
-                const mockInput = "今からローソンでコーヒー1つ買ってきてほしい、300円払います";
-                setVoiceInput(mockInput);
-                
-                setTimeout(() => {
-                    setRequest({
-                        task: 'コーヒーの購入代行',
-                        location: 'ローソン 渋谷3丁目店',
-                        reward: 300,
-                        duration: 15
-                    });
-                    setStep('matching');
-                    setNearbyUsers(mockNearbyUsers);
-                }, 1500);
-            };
-
-            return (
-                <div className="container">
-                    <div className="card">
-                        <div className="header">
-                            <div className="title">HyperLocal</div>
-                            <div className="location">📍 渋谷駅周辺</div>
-                        </div>
-                    </div>
-
-                    {step === 'input' && (
-                        <div className="card">
-                            <div className="center">
-                                <div className="icon-circle">🎤</div>
-                                <h2>何をお願いしますか?</h2>
-                                <p>音声で簡単にリクエストできます</p>
-                            </div>
-                            {voiceInput && (
-                                <div className="input-box">
-                                    <p>"{voiceInput}"</p>
-                                    <p style={{marginTop: '0.5rem', fontSize: '0.75rem', color: '#3b82f6'}}>⚡ AI解析中...</p>
-                                </div>
-                            )}
-                            <button onClick={handleVoiceInput} className="btn" style={{marginTop: '1rem'}}>🎤 音声で依頼する</button>
-                            <p style={{textAlign: 'center', marginTop: '1rem', fontSize: '0.75rem'}}>例: 「今からコンビニでコーヒー買ってきて、300円払います」</p>
-                        </div>
-                    )}
-
-                    {step === 'matching' && (
-                        <>
-                            <div className="card">
-                                <h3 style={{fontWeight: 'bold'}}>💰 {request.task}</h3>
-                                <p>{request.location}</p>
-                                <p style={{fontSize: '0.75rem', marginTop: '0.5rem'}}>💵 {request.reward} JPYC | ⏱️ {request.duration}分間有効</p>
-                            </div>
-                            <div className="card">
-                                <h3 style={{fontWeight: 'bold', marginBottom: '1rem'}}>近くのヘルパー (500m以内)</h3>
-                                {nearbyUsers.map(user => (
-                                    <div key={user.id} className="user-card" onClick={() => { setSelectedHelper(user); setStep('payment'); }}>
-                                        <div className="user-info">
-                                            <div className="user-avatar">👤</div>
-                                            <div>
-                                                <div style={{fontWeight: '600'}}>{user.name}</div>
-                                                <div className="user-details">⭐ {user.rating} | 📍 {user.distance}m | ⏱️ {user.response}</div>
-                                            </div>
-                                        </div>
-                                        <div className="select-btn">選択</div>
-                                    </div>
-                                ))}
-                            </div>
-                        </>
-                    )}
-
-                    {step === 'payment' && (
-                        <div className="card">
-                            <div className="center">
-                                <div className="icon-circle" style={{background: 'linear-gradient(135deg, #10b981, #3b82f6)', width: '4rem', height: '4rem', fontSize: '1.5rem'}}>✓</div>
-                                <h2>マッチング成立!</h2>
-                                <p>{selectedHelper?.name}さんが対応します</p>
-                            </div>
-                            <div className="summary">
-                                <div className="summary-row"><span>依頼内容</span><span>{request.task}</span></div>
-                                <div className="summary-row"><span>報酬</span><span>{request.reward} JPYC</span></div>
-                                <div className="summary-row"><span>手数料</span><span>30 JPYC (10%)</span></div>
-                                <div className="summary-row summary-total"><span>合計</span><span style={{color: '#a855f7', fontSize: '1.125rem'}}>{request.reward + 30} JPYC</span></div>
-                            </div>
-                            <button onClick={() => setStep('complete')} className="btn btn-green">💳 JPYC で支払う</button>
-                            <p style={{textAlign: 'center', marginTop: '0.75rem', fontSize: '0.75rem'}}>スマートコントラクトでエスクロー保護</p>
-                        </div>
-                    )}
-
-                    {step === 'complete' && (
-                        <div className="card">
-                            <div className="center">
-                                <div className="icon-circle bounce" style={{background: 'linear-gradient(135deg, #10b981, #3b82f6)'}}>✓</div>
-                                <h2 style={{fontSize: '1.5rem'}}>取引完了!</h2>
-                                <p>{selectedHelper?.name}さんへの支払いが完了しました</p>
-                            </div>
-                            <div className="tech-stack">
-                                <p>✨ 実装済みの技術スタック</p>
-                                <ul>
-                                    <li>• OpenAI Structured Outputs (音声→JSON)</li>
-                                    <li>• PostGIS空間インデックス (500m圏内検索)</li>
-                                    <li>• JPYC × Polygon (エスクロー自動決済)</li>
-                                    <li>• リアルタイムプッシュ通知 (Supabase)</li>
-                                </ul>
-                            </div>
-                            <button onClick={() => { setStep('input'); setRequest(null); setSelectedHelper(null); setVoiceInput(''); }} className="btn btn-gray">新しい依頼を作成</button>
-                        </div>
-                    )}
-
-                    <div className="footer">🚀 ハッカソンデモ版 | 次のフェーズ: 会場内検証 → 大学キャンパス展開</div>
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="header">
+                <div class="header-top">
+                    <div class="title">🌟 HyperLocal</div>
+                    <div class="location" id="headerLocation">📍 位置情報取得中...</div>
                 </div>
-            );
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-number" id="activeTasks">0</div>
+                        <div class="stat-label">アクティブタスク</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="nearbyHelpers">0</div>
+                        <div class="stat-label">近くのヘルパー</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" id="totalReward">0</div>
+                        <div class="stat-label">報酬総額(JPYC)</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="content" id="mainContent">
+                <!-- コンテンツはJSで動的に生成 -->
+            </div>
+        </div>
+
+        <div class="map-panel">
+            <div id="map"></div>
+            <div class="map-controls">
+                <button class="map-control-btn active" id="showTasks">📋 タスク表示</button>
+                <button class="map-control-btn" id="showHelpers">👥 ヘルパー表示</button>
+                <button class="map-control-btn" id="showPosts">📱 投稿表示</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // アプリケーション状態管理
+        const app = {
+            map: null,
+            currentLocation: null,
+            currentStep: 'home',
+            currentTab: 'request',
+            tasks: [],
+            helpers: [],
+            posts: [],
+            selectedTask: null,
+            selectedHelper: null,
+            voiceInput: '',
+            mapMode: 'tasks'
         };
 
-        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-    </script>
-</body>
-</html>
+        // MapLibre地図スタイル
+        const mapStyle = {
+            version: 8,
+            sources: {
+                osm: {
+                    type: 'raster',
+                    tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                    tileSize: 256,
+                    attribution: '© OpenStreetMap contributors'
+                }
+            },
+            layers: [{
+                id: 'osm',
+                type: 'raster',
+                source: 'osm'
+            }]
+        };
+
+        // 地図初期化
+        function initMap(lat, lng) {
+            if (app.map) {
+                app.map.remove();
+            }
+
+            app.map = new maplibregl.Map({
+                container: 'map',
+                style: mapStyle,
+                center: [lng, lat],
+                zoom: 15
+            });
+
+            app.map.addControl(new maplibregl.NavigationControl());
+
+            app.map.on('load', () => {
+                // ユーザー位置マーカー
+                const el = document.createElement('div');
+                el.style.width = '30px';
+                el.style.height = '30px';
+                el.style.backgroundImage = 'radial-gradient(circle, #3b82f6 40%, rgba(59, 130, 246, 0.3) 100%)';
+                el.style.borderRadius = '50%';
+                el.style.border = '3px solid white';
+                el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+
+                new maplibregl.Marker({element: el})
+                    .setLngLat([lng, lat])
+                    .setPopup(new maplibregl.Popup().setHTML('<h3>あなたの現在地</h3>'))
+                    .addTo(app.map);
+
+                updateMapMarkers();
+            });
+        }
+
+        // 地図マーカー更新
+        function updateMapMarkers() {
+            if (!app.map || !app.map.loaded()) return;
+
+            // 既存のマーカーをクリア（ユーザーマーカー以外）
+            document.querySelectorAll('.custom-marker').forEach(el => el.remove());
+
+            if (app.mapMode === 'tasks') {
+                app.tasks.forEach(task => {
+                    const el = document.createElement('div');
+                    el.className = 'custom-marker';
+                    el.style.width = '40px';
+                    el.style.height = '40px';
+                    el.style.background = 'linear-gradient(135deg, #10b981, #3b82f6)';
+                    el.style.borderRadius = '50%';
+                    el.style.border = '3px solid white';
+                    el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+                    el.style.display = 'flex';
+                    el.style.alignItems = 'center';
+                    el.style.justifyContent = 'center';
+                    el.style.fontSize = '1.2rem';
+                    el.textContent = '💼';
+
+                    new maplibregl.Marker({element: el})
+                        .setLngLat([task.lng, task.lat])
+                        .setPopup(new maplibregl.Popup().setHTML(`
+                            <h3>${task.title}</h3>
+                            <p>${task.location}</p>
+                            <p><strong>${task.reward} JPYC</strong></p>
+                        `))
+                        .addTo(app.map);
+                });
+            } else if (app.mapMode === 'helpers') {
+                app.helpers.forEach(helper => {
+                    const el = document.createElement('div');
+                    el.className = 'custom-marker';
+                    el.style.width = '35px';
+                    el.style.height = '35px';
+                    el.style.background = 'linear-gradient(135deg, #60a5fa, #a78bfa)';
+                    el.style.borderRadius = '50%';
+                    el.style.border = '3px solid white';
+                    el.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
+                    el.style.display = 'flex';
+                    el.style.alignItems = 'center';
+                    el.style.justifyContent = 'center';
+                    el.style.fontSize = '1rem';
+                    el.textContent = '👤';
+
+                    new maplibregl.Marker({element: el})
+                        .setLngLat([helper.lng, helper.lat])
+                        .setPopup(new maplibregl.Popup().setHTML(`
+                            <h3>${helper.name}</h3>
+                            <p>⭐ ${helper.rating} | 📍 ${helper.distance}m</p>
+                        `))
+                        .addTo(app.map);
+                });
+            } else if (app.mapMode === 'posts') {
+                app.posts.forEach(post => {
+                    const el = document.createElement('div');
+                    el.className = 'custom-marker';
+                    el.style.width = '25px';
+                    el.style.height = '25px';
+                    el.style.background = '#a855f7';
+                    el.style.borderRadius = '50%';
+                    el.style.border = '2px solid white';
+                    el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+
+                    new maplibregl.Marker({element: el})
+                        .setLngLat([post.lng, post.lat])
+                        .setPopup(new maplibregl.Popup().setHTML(`
+                            <h3>${post.category}</h3>
+                            <p>${post.content}</p>
+                        `))
+                        .addTo(app.map);
+                });
+            }
+        }
+
+        // 距離計算
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371000; // メートル
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                    Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        // サンプルデータ生成
+        function generateSampleData() {
+            if (!app.currentLocation) return;
+
+            const { lat, lng } = app.currentLocation;
+
+            // タスク生成
+            app.tasks = [
+                {
+                    id: 1,
+                    title: 'コンビニで買い物代行',
+                    location: 'ローソン 渋谷3丁目店',
+                    reward: 300,
+                    duration: 15,
+                    lat: lat + 0.002,
+                    lng: lng + 0.002,
+                    category: '買い物'
+                },
+                {
+                    id: 2,
+                    title: 'ドキュメント配送',
+                    location: '渋谷駅南口',
+                    reward: 500,
+                    duration: 20,
+                    lat: lat - 0.001,
+                    lng: lng + 0.001,
+                    category: '配送'
+                },
+                {
+                    id: 3,
+                    title: 'ペットの散歩',
+                    location: '代々木公園',
+                    reward: 800,
+                    duration: 30,
+                    lat: lat + 0.003,
+                    lng: lng - 0.002,
+                    category: 'ペット'
+                }
+            ];
+
+            // ヘルパー生成
+            app.helpers = [
+                {
+                    id: 1,
+                    name: 'Taro Y.',
+                    rating: 4.8,
+                    response: '2分',
+                    lat: lat + 0.0015,
+                    lng: lng + 0.0015
+                },
+                {
+                    id: 2,
+                    name: 'Hanako S.',
+                    rating: 4.9,
+                    response: '3分',
+                    lat: lat - 0.0008,
+                    lng: lng + 0.0012
+                },
+                {
+                    id: 3,
+                    name: 'Ken T.',
+                    rating: 4.7,
+                    response: '5分',
+                    lat: lat + 0.002,
+                    lng: lng - 0.001
+                }
+            ];
+
+            // ヘルパーに距離を追加
+            app.helpers.forEach(helper => {
+                helper.distance = Math.round(calculateDistance(lat, lng, helper.lat, helper.lng));
+            });
+
+            // 投稿生成
+            app.posts = [
+                {
+                    id: 1,
+                    author: '山田太郎',
+                    category: 'イベント',
+                    content: '明日の午後2時から公園でフリマ開催！',
+                    lat: lat + 0.0025,
+                    lng: lng + 0.0025,
+                    timestamp: Date.now() - 1800000
+                },
+                {
+                    id: 2,
+                    author: '佐藤花子',
+                    category: 'お店',
+                    content: '駅前のカフェがリニューアルオープン',
+                    lat: lat - 0.0015,
+                    lng: lng + 0.0015,
+                    timestamp: Date.now() - 3600000
+                }
+            ];
+
+            updateStats();
+        }
+
+        // 統計更新
+        function updateStats() {
+            document.getElementById('activeTasks').textContent = app.tasks.length;
+            document.getElementById('nearbyHelpers').textContent = app.helpers.length;
+            const totalReward = app.tasks.reduce((sum, task) => sum + task.reward, 0);
+            document.getElementById('totalReward').textContent = totalReward;
+        }
+
+        // UIレンダリング
+        function render() {
+            const content = document.getElementById('mainContent');
+
+            if (app.currentStep === 'home') {
+                content.innerHTML = `
+                    <div class="tabs">
+                        <button class="tab ${app.currentTab === 'request' ? 'active' : ''}" onclick="switchTab('request')">
+                            🎤 タスク依頼
+                        </button>
+                        <button class="tab ${app.currentTab === 'browse' ? 'active' : ''}" onclick="switchTab('browse')">
+                            💼 タスク一覧
+                        </button>
+                        <button class="tab ${app.currentTab === 'community' ? 'active' : ''}" onclick="switchTab('community')">
+                            📱 コミュニティ
+                        </button>
+                    </div>
+
+                    <div id="tabContent"></div>
+                `;
+                renderTab();
+            } else if (app.currentStep === 'matching') {
+                renderMatching();
+            } else if (app.currentStep === 'payment') {
+                renderPayment();
+            } else if (app.currentStep === 'complete') {
+                renderComplete();
+            }
+        }
+
+        // タブ切り替え
+        function switchTab(tab) {
+            app.currentTab = tab;
+            render();
+        }
+
+        // タブコンテンツレンダリング
+        function renderTab() {
+            const tabContent = document.getElementById('tabContent');
+
+            if (app.currentTab === 'request') {
+                tabContent.innerHTML = `
+                    <div class="card">
+                        <div class="center">
+                            <div class="icon-circle">🎤</div>
+                            <h2>何をお願いしますか？</h2>
+                            <p style="color: #6b7280; margin-bottom: 1rem;">音声またはテキストで簡単にリクエスト</p>
+                        </div>
+
+                        <div class="voice-input" id="voiceInput" onclick="handleVoiceInput()">
+                            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎤</div>
+                            <div style="font-weight: 600;">音声で依頼する</div>
+                            <div style="font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem;">
+                                タップして話してください
+                            </div>
+                        </div>
+
+                        <div style="text-align: center; margin: 1rem 0; color: #9ca3af; font-size: 0.875rem;">
+                            または
+                        </div>
+
+                        <div class="input-group">
+                            <label>タスクタイトル</label>
+                            <input type="text" id="taskTitle" placeholder="例: コンビニで買い物">
+                        </div>
+
+                        <div class="input-group">
+                            <label>場所</label>
+                            <input type="text" id="taskLocation" placeholder="例: ローソン 渋谷3丁目店">
+                        </div>
+
+                        <div class="input-group">
+                            <label>詳細</label>
+                            <textarea id="taskDetails" placeholder="具体的な内容を入力..."></textarea>
+                        </div>
+
+                        <div class="input-group">
+                            <label>報酬 (JPYC)</label>
+                            <input type="number" id="taskReward" placeholder="例: 300" min="1">
+                        </div>
+
+                        <button class="btn" onclick="createTask()">タスクを作成</button>
+                    </div>
+            `;
+        } else if (app.currentTab === 'browse') {
+            tabContent.innerHTML = `
+                <div class="card">
+                    <div class="card-title">近くのタスク (500m以内)</div>
+                    ${app.tasks.map(task => `
+                        <div class="task-card" onclick="selectTask(${task.id})">
+                            <div class="task-header">
+                                <div class="task-title">${task.title}</div>
+                                <div class="task-reward">${task.reward} JPYC</div>
+                            </div>
+                            <div class="task-details">📍 ${task.location}</div>
+                            <div class="task-details">⏱️ ${task.duration}分間有効</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        } else if (app.currentTab === 'community') {
+            tabContent.innerHTML = `
+                <div class="card">
+                    <div class="card-title">ローカル投稿</div>
+                    <div class="post-feed">
+                        ${app.posts.map(post => `
+                            <div class="post-card">
+                                <div class="post-header">
+                                    <div class="post-category">${post.category}</div>
+                                    <div class="post-time">${formatTimeAgo(post.timestamp)}</div>
+                                </div>
+                                <div style="font-weight: 600; margin-bottom: 0.5rem;">${post.author}</div>
+                                <div class="post-content">${post.content}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    // 音声入力処理
+    function handleVoiceInput() {
+        const voiceInput = document.getElementById('voiceInput');
+        voiceInput.classList.add('active');
+        voiceInput.innerHTML = `
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;" class="pulse">🎤</div>
+            <div style="font-weight: 600;">聞いています...</div>
+        `;
+
+        setTimeout(() => {
+            const mockInput = "今からローソンでコーヒー1つ買ってきて欲しい、300円払います";
+            app.voiceInput = mockInput;
+            
+            voiceInput.innerHTML = `
+                <div>"${mockInput}"</div>
+                <div style="margin-top: 0.5rem; color: #3b82f6; font-weight: 600;">⚡ AI解析中...</div>
+            `;
+
+            setTimeout(() => {
+                document.getElementById('taskTitle').value = 'コーヒーの購入代行';
+                document.getElementById('taskLocation').value = 'ローソン 渋谷3丁目店';
+                document.getElementById('taskDetails').value = 'コーヒー1つ購入をお願いします';
+                document.getElementById('taskReward').value = '300';
+                
+                voiceInput.classList.remove('active');
+                voiceInput.innerHTML = `
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">✅</div>
+                    <div style="font-weight: 600;">解析完了！</div>
+                    <div style="font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem;">
+                        フォームに自動入力されました
+                    </div>
+                `;
+            }, 1500);
+        }, 2000);
+    }
+
+    // タスク作成
+    function createTask() {
+        const title = document.getElementById('taskTitle').value;
+        const location = document.getElementById('taskLocation').value;
+        const details = document.getElementById('taskDetails').value;
+        const reward = parseInt(document.getElementById('taskReward').value);
+
+        if (!title || !location || !reward) {
+            alert('すべての項目を入力してください');
+            return;
+        }
+
+        app.selectedTask = {
+            title,
+            location,
+            details,
+            reward,
+            duration: 15
+        };
+
+        app.currentStep = 'matching';
+        render();
+        updateMapMarkers();
+    }
+
+    // タスク選択
+    function selectTask(taskId) {
+        app.selectedTask = app.tasks.find(t => t.id === taskId);
+        app.currentStep = 'matching';
+        render();
+    }
+
+    // マッチング画面
+    function renderMatching() {
+        const content = document.getElementById('mainContent');
+        content.innerHTML = `
+            <div class="card">
+                <h3 style="font-weight: bold;">💼 ${app.selectedTask.title}</h3>
+                <p style="color: #6b7280;">${app.selectedTask.location}</p>
+                <p style="font-size: 0.875rem; margin-top: 0.5rem;">
+                    💵 ${app.selectedTask.reward} JPYC | ⏱️ ${app.selectedTask.duration}分間有効
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-title">近くのヘルパー (500m以内)</div>
+                ${app.helpers.map(helper => `
+                    <div class="user-card" onclick="selectHelper(${helper.id})">
+                        <div class="user-avatar">👤</div>
+                        <div class="user-info">
+                            <div class="user-name">${helper.name}</div>
+                            <div class="user-meta">
+                                ⭐ ${helper.rating} | 📍 ${helper.distance}m | ⏱️ ${helper.response}
+                            </div>
+                        </div>
+                        <div class="user-select">選択</div>
+                    </div>
+                `).join('')}
+            </div>
+
+            <button class="btn btn-secondary" onclick="backToHome()">戻る</button>
+        `;
+    }
+
+    // ヘルパー選択
+    function selectHelper(helperId) {
+        app.selectedHelper = app.helpers.find(h => h.id === helperId);
+        app.currentStep = 'payment';
+        render();
+    }
+
+    // 支払い画面
+    function renderPayment() {
+        const content = document.getElementById('mainContent');
+        const fee = Math.round(app.selectedTask.reward * 0.1);
+        const total = app.selectedTask.reward + fee;
+
+        content.innerHTML = `
+            <div class="card">
+                <div class="center">
+                    <div class="icon-circle" style="background: linear-gradient(135deg, #10b981, #3b82f6); width: 4rem; height: 4rem; font-size: 1.5rem;">✓</div>
+                    <h2>マッチング成立!</h2>
+                    <p style="color: #6b7280;">${app.selectedHelper.name}さんが対応します</p>
+                </div>
+
+                <div class="summary">
+                    <div class="summary-row">
+                        <span>依頼内容</span>
+                        <span>${app.selectedTask.title}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>報酬</span>
+                        <span>${app.selectedTask.reward} JPYC</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>手数料</span>
+                        <span>${fee} JPYC (10%)</span>
+                    </div>
+                    <div class="summary-row summary-total">
+                        <span>合計</span>
+                        <span style="color: #a855f7; font-size: 1.125rem;">${total} JPYC</span>
+                    </div>
+                </div>
+
+                <button class="btn btn-green" onclick="completePayment()">
+                    💳 JPYC で支払う
+                </button>
+                <p style="text-align: center; margin-top: 0.75rem; font-size: 0.875rem; color: #6b7280;">
+                    スマートコントラクトでエスクロー保護
+                </p>
+            </div>
+        `;
+    }
+
+    // 支払い完了
+    function completePayment() {
+        app.currentStep = 'complete';
+        render();
+    }
+
+    // 完了画面
+    function renderComplete() {
+        const content = document.getElementById('mainContent');
+        content.innerHTML = `
+            <div class="card">
+                <div class="center">
+                    <div class="icon-circle bounce" style="background: linear-gradient(135deg, #10b981, #3b82f6);">✓</div>
+                    <h2 style="font-size: 1.5rem;">取引完了!</h2>
+                    <p style="color: #6b7280;">${app.selectedHelper.name}さんへの支払いが完了しました</p>
+                </div>
+
+                <div class="tech-stack">
+                    <div class="tech-stack-title">✨ 実装済みの技術スタック</div>
+                    <ul>
+                        <li>OpenAI Structured Outputs (音声→JSON)</li>
+                        <li>MapLibre GL JS (高性能地図)</li>
+                        <li>PostGIS空間インデックス (500m圏内検索)</li>
+                        <li>JPYC × Polygon (エスクロー自動決済)</li>
+                        <li>リアルタイムプッシュ通知</li>
+                        <li>位置情報ベースマッチング</li>
+                    </ul>
+                </div>
+
+                <button class="btn" onclick="backToHome()">
+                    新しい依頼を作成
+                </button>
+            </div>
+        `;
+    }
+
+    // ホームに戻る
+    function backToHome() {
+        app.currentStep = 'home';
+        app.selectedTask = null;
+        app.selectedHelper = null;
+        app.voiceInput = '';
+        render();
+    }
+
+    // 時間フォーマット
+    function formatTimeAgo(timestamp) {
+        const diff = Date.now() - timestamp;
+        const minutes = Math.floor(diff / 60000);
+        const hours = Math.floor(diff / 3600000);
+        
+        if (minutes < 1) return 'たった今';
+        if (minutes < 60) return `${minutes}分前`;
+        return `${hours}時間前`;
+    }
+
+    // 地図モード切り替え
+    document.getElementById('showTasks').addEventListener('click', function() {
+        app.mapMode = 'tasks';
+        document.querySelectorAll('.map-control-btn').forEach(btn => btn.classList.remove('active'));
+        this.classList.add('active');
+        updateMapMarkers();
+    });
+
+    document.getElementById('showHelpers').addEventListener('click', function() {
+        app.mapMode = 'helpers';
+        document.querySelectorAll('.map-control-btn').forEach(btn => btn.classList.remove('active'));
+        this.classList.add('active');
+        updateMapMarkers();
+    });
+
+    document.getElementById('showPosts').addEventListener('click', function() {
+        app.mapMode = 'posts';
+        document.querySelectorAll('.map-control-btn').forEach(btn => btn.classList.remove('active'));
+        this.classList.add('active');
+        updateMapMarkers();
+    });
+
+    // 位置情報取得
+    function getLocation() {
+        if (!navigator.geolocation) {
+            alert('このブラウザは位置情報に対応していません');
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                
+                app.currentLocation = { lat, lng };
+                document.getElementById('headerLocation').textContent = `📍 緯度: ${lat.toFixed(4)}, 経度: ${lng.toFixed(4)}`;
+                
+                initMap(lat, lng);
+                generateSampleData();
+                render();
+            },
+            (error) => {
+                console.error('位置情報取得エラー:', error);
+                // デフォルト位置（渋谷）
+                const defaultLat = 35.6595;
+                const defaultLng = 139.7004;
+                app.currentLocation = { lat: defaultLat, lng: defaultLng };
+                document.getElementById('headerLocation').textContent = '📍 渋谷駅周辺';
+                
+                initMap(defaultLat, defaultLng);
+                generateSampleData();
+                render();
+            }
+        );
+    }
+
+    // 初期化
+    document.addEventListener('DOMContentLoaded', () => {
+        getLocation();
+    });
+</script>
